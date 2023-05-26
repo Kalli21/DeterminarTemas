@@ -20,7 +20,6 @@ def text_topics(user_id,comentarios: List[str],ids: List[str],numTemas : int):
 def get_text_topics(usert_id,numwords:int):
     model = IAservices()
     resultados = model.get_topics(usert_id,numwords)
-    print(resultados)
     json_resultados = jsonable_encoder(resultados)
     return json_resultados
 
