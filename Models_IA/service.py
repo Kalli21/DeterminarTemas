@@ -1,11 +1,46 @@
 
 from Models.sentences import Sentence
+from Models.stats import StatsUser
 from Models_IA.DetTemas import determinador_temas
 import numpy as np
 import ast
 
 class IAservices():
 
+    def topic_modeling(self,comentarios,username,numTemas):
+        model =  determinador_temas()
+        com_text = self._trans_comentarios(comentarios)
+        arr_coment = np.array(com_text)
+        result_np = model.crear_modelo(arr_coment,cant_topics=numTemas)  
+        model.guardar_modelo(username)       
+        
+        stats = StatsUser()
+        
+        i=0
+        for c in comentarios:
+            c.temas = self._trans_list_dic(result_np[i])            
+            i+=1
+        stats.total = i    
+        return comentarios, stats
+    
+    def get_topics(self,username,numwords):
+        model = determinador_temas()
+        model.cargar_modelo(username)
+        result = model.get_topics(numwords)
+        
+        aux_dic = {}
+        
+        if len(result) != 0:
+            aux_dic = self._trans_list_dic_str(result)
+        
+        return aux_dic
+    
+    def get_num_topics(self,username):
+        model = determinador_temas()
+        model.cargar_modelo(username)
+        return model.get_numero_topicos()
+    
+# metodos privados            
     def _trans_list_dic(self,lista_tuplas):
         diccionario = {}
         for par in lista_tuplas:
@@ -34,36 +69,8 @@ class IAservices():
             result_dict[item[0]] = val
         return result_dict
     
-    def topic_modeling(self,comentarios,ids,username,numTemas):
-        model =  determinador_temas()
-        arr_coment = np.array(comentarios)
-        result_np = model.crear_modelo(arr_coment,cant_topics=numTemas)  
-        model.guardar_modelo(username)       
-        
-        result = []
-        i=0
+    def _trans_comentarios(self,comentarios):
+        list_text = []
         for c in comentarios:
-            coment = Sentence(text = c)
-            coment.id = ids[i]
-            coment.temas = self._trans_list_dic(result_np[i])            
-            i+=1
-            result.append(coment)
-        return result
-    
-    def get_topics(self,username,numwords):
-        model = determinador_temas()
-        model.cargar_modelo(username)
-        result = model.get_topics(numwords)
-        
-        aux_dic = {}
-        
-        if len(result) != 0:
-            aux_dic = self._trans_list_dic_str(result)
-        
-        return aux_dic
-    
-    def get_num_topics(self,username):
-        model = determinador_temas()
-        model.cargar_modelo(username)
-        return model.get_numero_topicos()
-            
+            list_text.append(c.text)
+        return list_text
