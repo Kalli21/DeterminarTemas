@@ -5,6 +5,7 @@ from Models.stats import StatsUser
 from Models_IA.service import IAservices
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_pagination import Page, paginate
 
 from Repository.main import FireRepository
 
@@ -13,7 +14,8 @@ app = FastAPI()
 # Configuración de CORS
 origins = [
     "http://localhost",
-    "http://localhost:4200",  # Agrega la URL de tu aplicación Angular aquí
+    "http://localhost:4200",
+    "http://127.0.0.1:8000",
 ]
 
 app.add_middleware(
@@ -23,7 +25,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 repo = FireRepository()
 
 
@@ -48,11 +49,17 @@ def text_topics(user_id,numTemas : int):
     return json_resultados
 
 @app.get("/temas/{user_id}/{numwords}")
-def get_text_topics(usert_id,numwords:int):
+def get_text_topics(user_id,numwords:int):
     model = IAservices()
-    resultados = model.get_topics(usert_id,numwords)
+    resultados = model.get_topics(user_id,numwords)
     json_resultados = jsonable_encoder(resultados)
     return json_resultados
+
+@app.post("/temas/comentarios/{user_id}/{numwords}")
+def get_temas_by_comentarios(user_id,numwords:int, ids:List[str],filtro:List[int]):
+    model = IAservices()
+    temas = model.get_topics(user_id,numwords)
+    return repo.get_temas_by_comentarios(user_id,ids,temas,filtro)
 
 @app.get("/canttemas/{user_id}")
 def get_text_topics(usert_id):

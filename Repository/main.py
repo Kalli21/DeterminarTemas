@@ -2,6 +2,7 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 from typing import List
+from Models.infoGrafProducto import InfoGrafProducto
 
 from Models.sentences import Sentence
 from Models.stats import StatsUser
@@ -74,6 +75,34 @@ class FireRepository():
         else:
             return False
 
+    
+    def get_temas_by_comentarios(self,user_id,ids,temas,filtro):
+        resp = InfoGrafProducto()
+        listTemas = []
+        listIds = []
+        listComents = []    
+        
+        if not filtro or len(filtro) == 0:
+            filtro = list(range(len(temas))) 
+        
+        for i in ids:
+            coment = self.get_prediccion(user_id, i)
+            if coment:
+                coment_temas = coment.get('temas')
+                diccionario_numeros = {clave: float(valor) for clave, valor in coment_temas.items()}
+                # clave_max = max(diccionario_numeros, key=diccionario_numeros.get)
+                if diccionario_numeros:
+                        clave_max = max(diccionario_numeros, key=diccionario_numeros.get)
+                else:
+                    # Manejo de la secuencia vacía, según sea apropiado para tu aplicación
+                    clave_max = -1
+                if int(clave_max) in filtro:
+                    if clave_max not in listIds:                    
+                        listIds.append(clave_max)
+                        listComents.append(coment['id'])
+        for i in listIds:
+            listTemas.append(temas[int(i)])
 
-
-
+        resp.temas = listTemas
+        resp.comentariosId = listComents
+        return resp

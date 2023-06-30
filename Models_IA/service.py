@@ -49,7 +49,7 @@ class IAservices():
             diccionario[str(clave)] = str(valor)
         return diccionario
     
-    def _trans_str_dic(self,list_str,separador):
+    def _trans_str_dic(self,list_str,separador):    
         result_dict = {}
 
         for group in list_str:
