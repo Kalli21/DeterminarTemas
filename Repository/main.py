@@ -92,14 +92,14 @@ class FireRepository():
                 diccionario_numeros = {clave: float(valor) for clave, valor in coment_temas.items()}
                 # clave_max = max(diccionario_numeros, key=diccionario_numeros.get)
                 if diccionario_numeros:
-                        clave_max = max(diccionario_numeros, key=diccionario_numeros.get)
+                    clave_max = max(diccionario_numeros, key=diccionario_numeros.get)
                 else:
                     # Manejo de la secuencia vacía, según sea apropiado para tu aplicación
                     clave_max = -1
                 if int(clave_max) in filtro:
                     if clave_max not in listIds:                    
                         listIds.append(clave_max)
-                        listComents.append(coment['id'])
+                    listComents.append(coment['id'])
         for i in listIds:
             listTemas.append(temas[int(i)])
 
