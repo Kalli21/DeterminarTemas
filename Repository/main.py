@@ -90,7 +90,6 @@ class FireRepository():
             if coment:
                 coment_temas = coment.get('temas')
                 diccionario_numeros = {clave: float(valor) for clave, valor in coment_temas.items()}
-                # clave_max = max(diccionario_numeros, key=diccionario_numeros.get)
                 if diccionario_numeros:
                     clave_max = max(diccionario_numeros, key=diccionario_numeros.get)
                 else:
