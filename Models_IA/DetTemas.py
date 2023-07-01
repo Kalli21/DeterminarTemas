@@ -9,11 +9,8 @@ from nltk.stem.porter import PorterStemmer
 from gensim import models
 from gensim import corpora
 import os
-import math
 
-import numpy as np
-
-class DeterminadorTemas:
+class determinador_temas:
     
     def __init__(self):
         self.stemmer = PorterStemmer()
@@ -28,13 +25,16 @@ class DeterminadorTemas:
         ]
         return clean_text    
     
-
-    def crear_modelo(self, comentarios, cant_topics=20):
+    def _procesador(self, comentarios):
         processed_comments = [self._process_text(comment) for comment in comentarios]
-        dictionary = corpora.Dictionary(processed_comments)
-        corpus = [dictionary.doc2bow(text) for text in processed_comments]
+        return processed_comments
+    
+    def crear_modelo(self, comentarios, cant_topics=20):
+        processed_comments = self._procesador(comentarios)
+        dic = corpora.Dictionary(processed_comments)
+        corpus = [dic.doc2bow(text) for text in processed_comments]
         
-        self.model = models.ldamodel.LdaModel(corpus, num_topics=cant_topics, id2word=dictionary, passes=15)
+        self.model = models.ldamodel.LdaModel(corpus, num_topics=cant_topics, id2word=dic, passes=15)
         
         distribuciones_de_topicos = [self.model.get_document_topics(documento) for documento in corpus]
         return distribuciones_de_topicos
@@ -69,11 +69,9 @@ class DeterminadorTemas:
         
     def distribucion_temas(self, comentarios):
         if self.model:
-            text_procesado = [self._process_text(comment) for comment in comentarios]
-            dictionary = self.model.id2word
-            
-            nuevo_corpus = [dictionary.doc2bow(texto) for texto in text_procesado]
-
+            text_procesado = self._procesador(comentarios)
+            diccionario = self.model.id2word
+            nuevo_corpus = [diccionario.doc2bow(texto) for texto in text_procesado]
             distribuciones_de_topicos = [self.model.get_document_topics(documento) for documento in nuevo_corpus]
             return distribuciones_de_topicos
         else:
