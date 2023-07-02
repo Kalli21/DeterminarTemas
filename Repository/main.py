@@ -1,3 +1,4 @@
+from math import ceil
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
@@ -53,17 +54,33 @@ class FireRepository():
         return collection_ref.document(coment_id).get().to_dict() 
 
     def update_predicciones(self,user_id: str, comentarios: List[Sentence]):
-        batch = self.db.batch()
+        # batch = self.db.batch()
 
-        for sentence in comentarios:
-            # Excluir el campo 'id' del diccionario de datos
-            sentence_data = sentence.dict(exclude={'id'})
-            doc_ref = self.db.collection('usuarios').document(user_id).collection('comentarios').document(sentence.id)
-            batch.update(doc_ref, sentence_data)
+        # for sentence in comentarios:
+        #     # Excluir el campo 'id' del diccionario de datos
+        #     sentence_data = sentence.dict(exclude={'id'})
+        #     doc_ref = self.db.collection('usuarios').document(user_id).collection('comentarios').document(sentence.id)
+        #     batch.update(doc_ref, sentence_data)
 
-        batch.commit()
+        # batch.commit()
+        # return comentarios
+        MAX_BATCH_SIZE = 500  # Tamaño máximo del lote
+
+        # Dividir los comentarios en lotes más pequeños
+        num_batches = ceil(len(comentarios) / MAX_BATCH_SIZE)
+        batches = [comentarios[i:i+MAX_BATCH_SIZE] for i in range(0, len(comentarios), MAX_BATCH_SIZE)]
+
+        for batch in batches:
+            batch_update = self.db.batch()
+
+            for sentence in batch:
+                sentence_data = sentence.dict(exclude={'id'})
+                doc_ref = self.db.collection('usuarios').document(user_id).collection('comentarios').document(sentence.id)
+                batch_update.update(doc_ref, sentence_data)
+
+            batch_update.commit()
+
         return comentarios
-
 
     def deled_prediccion(self,user_id,coment_id):
         comment_ref = self.db.collection('usuarios').document(user_id).collection('comentarios').document(coment_id)
