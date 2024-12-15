@@ -4,9 +4,12 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 from typing import List
 from Models.infoGrafProducto import InfoGrafProducto
-
+from fastapi.encoders import jsonable_encoder
 from Models.sentences import Sentence
-from Models.stats import StatsUser
+from Models.stats import StatsUser, BaseStats
+
+from google.cloud.firestore import FieldFilter
+from Models.request.filtroComentario import  FiltroSentences, InfoGrafGeneral
 
 
 class FireRepository():
@@ -21,12 +24,19 @@ class FireRepository():
         
     def set_stats(self,user_id,stats:StatsUser):
         return self.db.collection('usuarios').document(user_id).set(stats.dict())
-        
-        
+                
     def update_stats(self,user_id,stats:StatsUser):
-        return self.db.collection('usuarios').document(user_id).update(stats.dict())
+        # Convierte el objeto StatsUser a un diccionario serializable
+        stats_dict = jsonable_encoder(stats)        
+        # Actualiza el documento en Firestore
+        self.db.collection('usuarios').document(user_id).update(stats_dict)
+    
+    def update_base_stats(self,user_id,stats:BaseStats):
+        # Convierte el objeto StatsUser a un diccionario serializable
+        stats_dict = jsonable_encoder(stats)        
+        # Actualiza el documento en Firestore
+        self.db.collection('usuarios').document(user_id).update(stats_dict)
         
-
     def set_prediciones(self,user_id,comentarios: List[Sentence]):
         batch = self.db.batch()
         sentences_collection = self.db.collection('usuarios').document(user_id).collection('comentarios')  # Se obtiene una referencia de documento para la colección
@@ -38,13 +48,24 @@ class FireRepository():
         batch.commit()
         return sentences_collection.id
 
-    def get_predicciones(self,user_id):
+    def get_predicciones(self, user_id, filtro: FiltroSentences  = None):
         sentences = []
-        collection_ref = self.db.collection('usuarios').document(user_id).collection('comentarios').get()
-
-        for doc in collection_ref:
+        docs = self.db.collection('usuarios').document(user_id).collection('comentarios')
+        
+        if filtro:
+            if len(filtro.listId)>0: docs = docs.where(filter = FieldFilter('id', 'in', filtro.listId))
+            if filtro.fechaIni: docs = docs.where(filter = FieldFilter('fecha', '>=', filtro.fechaIni))
+            if filtro.fechaFin: docs = docs.where(filter = FieldFilter('fecha', '<=', filtro.fechaFin))
+            if len(filtro.temasId)>0: docs = docs.where(filter = FieldFilter('tema', 'in', filtro.temasId))
+        
+        if filtro and filtro.min_info: 
+            docs = docs.select(['id','tema']).get()
+        else:
+            docs = docs.get()
+            
+        for doc in docs:
             sentence_data = doc.to_dict()  # Obtener los datos del documento como un diccionario
-            sentence = Sentence(**sentence_data)  # Crear una instancia de Sentence usando los datos del documento
+            sentence = Sentence(**sentence_data)  # Crear una instancia de Sentence usando los datos del documento            
             sentences.append(sentence)
 
         return sentences
@@ -92,6 +113,42 @@ class FireRepository():
         else:
             return False
 
+    def delete_user(self, user_id):
+        # Obtén una referencia al documento principal
+        user_ref = self.db.collection('usuarios').document(user_id)
+
+        # Verifica si el documento existe
+        if user_ref.get().exists:
+            # Elimina las subcolecciones usando lotes
+            self._delete_subcollections_in_batches(user_ref)
+
+            # Elimina el documento principal
+            user_ref.delete()
+            return True
+        else:
+            return False
+
+    def _delete_subcollections_in_batches(self, document_ref):
+        # Obtén todas las subcolecciones
+        subcollections = document_ref.collections()
+
+        for subcollection in subcollections:
+            while True:
+                # Obtén hasta 500 documentos de la subcolección
+                docs = list(subcollection.limit(500).stream())
+
+                if not docs:
+                    break  # Si no hay más documentos, termina el ciclo
+
+                # Inicia un batch
+                batch = self.db.batch()
+
+                # Añade cada documento al batch para eliminar
+                for doc in docs:
+                    batch.delete(doc.reference)
+
+                # Ejecuta el batch
+                batch.commit()
     
     def get_temas_by_comentarios(self,user_id,ids,temas,filtro):
         resp = InfoGrafProducto()
@@ -122,3 +179,25 @@ class FireRepository():
         resp.temas = listTemas
         resp.comentariosId = listComents
         return resp
+    
+###### SET INFOR
+
+    async def clear_and_set_info(self, user_id: str, coll : str, list_info: InfoGrafGeneral):
+        # Obtiene la referencia de la subcolección
+        subcollection_ref = self.db.collection('usuarios').document(user_id).collection(coll)
+
+        # 1. Elimina todos los documentos en la subcolección
+        await self._clear_subcollection(subcollection_ref)
+        
+        body = list_info.dict()
+        subcollection_ref.add(body)
+        
+        return f"Se inserto informacion de {coll}"
+
+    async def _clear_subcollection(self, subcollection_ref):
+        # Obtiene todos los documentos de la subcolección
+        docs = subcollection_ref.stream()
+        # Elimina cada documento encontrado
+        for doc in docs:
+            doc.reference.delete()
+            

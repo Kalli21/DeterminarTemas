@@ -1,26 +1,30 @@
 
 from Models.sentences import Sentence
-from Models.stats import StatsUser
+from Models.stats import BaseStats
 from Models_IA.DetTemas import determinador_temas
 import numpy as np
 import ast
 
 class IAservices():
 
-    def topic_modeling(self,comentarios,username,numTemas):
+    def topic_modeling(self,comentarios,username,numTemas, ini_stats: BaseStats = None):
         model =  determinador_temas()
         com_text = self._trans_comentarios(comentarios)
         arr_coment = np.array(com_text)
         result_np = model.crear_modelo(arr_coment,cant_topics=numTemas)  
         model.guardar_modelo(username)       
         
-        stats = StatsUser()
+        if ini_stats:
+            stats = BaseStats(**ini_stats)
+        else:
+            stats = BaseStats()
         
         i=0
         for c in comentarios:
-            c.temas = self._trans_list_dic(result_np[i])            
+            c.temas = self._trans_list_dic(result_np[i])
+            c.tema = int(max(c.temas, key=c.temas.get))      
             i+=1
-        stats.total = i    
+        stats.total += i    
         return comentarios, stats
     
     def get_topics(self,username,numwords):
