@@ -201,3 +201,18 @@ class FireRepository():
         for doc in docs:
             doc.reference.delete()
             
+    async def get_info(self, user_id: str, coll: str):
+        # Obtiene la referencia de la subcolección
+        subcollection_ref = self.db.collection('usuarios').document(user_id).collection(coll)
+
+        # Obtiene el primer documento de la subcolección
+        query = subcollection_ref.limit(1).stream()
+
+        # Recorre el resultado de la consulta
+        for doc in query:
+            if doc.exists:
+                return doc.to_dict()  # Retorna los datos del primer documento
+
+        # Si no hay documentos, retorna False
+        return False
+            

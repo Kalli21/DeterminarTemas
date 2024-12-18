@@ -145,3 +145,17 @@ async def create_info_producto(user_id: str, info: InfoGrafGeneral):
     resultados = await repo.clear_and_set_info(user_id ,coll, info)
     json_resultados = jsonable_encoder(resultados)
     return json_resultados
+
+@app.get("/info/general/{user_id}")
+async def get_info_general(user_id: str):
+    coll = "info_general"    
+    resultados = await repo.get_info(user_id ,coll)
+    json_resultados = jsonable_encoder(resultados)
+    return json_resultados
+
+@app.get("/info/producto/{user_id}")
+async def get_info_general(user_id: str):
+    coll = "info_producto"
+    resultados = await repo.get_info(user_id ,coll)
+    json_resultados = jsonable_encoder(resultados)
+    return json_resultados
