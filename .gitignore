@@ -1,6 +1,7 @@
 # Created by https://www.toptal.com/developers/gitignore/api/python,firebase
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,firebase
 
+determinarTemas-env/
 Models_IA/DetTemas/
 credenciales/
 ### Firebase ###
